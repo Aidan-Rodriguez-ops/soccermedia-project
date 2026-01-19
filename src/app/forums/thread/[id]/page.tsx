@@ -6,60 +6,36 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { ThumbsUp, ThumbsDown, MessageSquare, Share2, Flag } from "lucide-react"
+import { getThreadById, getForumPosts, incrementThreadViews } from "@/lib/supabase-queries"
+import { notFound } from "next/navigation"
 
-export default function ThreadPage() {
-  const thread = {
-    title: "Manchester City's Tactical Evolution Under Guardiola: A Deep Dive",
-    author: "TacticsGuru",
-    authorAvatar: "/placeholder.svg?height=40&width=40",
-    timeAgo: "2 hours ago",
-    category: "Tactics & Analysis",
-    views: 3421,
-    replies: 127,
+function formatTimeAgo(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+
+  if (diffHours < 1) return "Just now"
+  if (diffHours < 24) return `${diffHours} hours ago`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays === 1) return "1 day ago"
+  if (diffDays < 7) return `${diffDays} days ago`
+  const diffWeeks = Math.floor(diffDays / 7)
+  if (diffWeeks === 1) return "1 week ago"
+  if (diffWeeks < 4) return `${diffWeeks} weeks ago`
+  return `${Math.floor(diffWeeks / 4)} months ago`
+}
+
+export default async function ThreadPage({ params }: { params: { id: string } }) {
+  const thread = await getThreadById(params.id)
+  const posts = await getForumPosts(params.id)
+
+  if (!thread) {
+    notFound()
   }
 
-  const posts = [
-    {
-      id: "1",
-      author: "TacticsGuru",
-      authorAvatar: "/placeholder.svg?height=40&width=40",
-      timeAgo: "2 hours ago",
-      content:
-        "Let's discuss how Manchester City's tactical approach has evolved over the years under Pep Guardiola. From the inverted fullbacks to the false 9 system, City has consistently adapted and innovated.\n\nKey points I want to explore:\n1. The role of inverted fullbacks (Walker, Cancelo, now Stones)\n2. Midfield rotation and positioning\n3. Pressing triggers and defensive transitions\n4. Adaptation in big European matches\n\nWhat are your thoughts on how City's tactics have changed?",
-      likes: 45,
-      dislikes: 2,
-    },
-    {
-      id: "2",
-      author: "FootballNerd",
-      authorAvatar: "/placeholder.svg?height=40&width=40",
-      timeAgo: "1 hour ago",
-      content:
-        "Great thread! I think the most fascinating aspect is how Guardiola has adapted the fullback role. Using Stones as an inverted fullback was genius - it allowed City to dominate possession in midfield while maintaining defensive stability. The numerical superiority in the middle of the pitch has been crucial to their success.",
-      likes: 28,
-      dislikes: 1,
-    },
-    {
-      id: "3",
-      author: "PepDisciple",
-      authorAvatar: "/placeholder.svg?height=40&width=40",
-      timeAgo: "45 minutes ago",
-      content:
-        "Don't forget about the evolution of Haaland's integration into the system. Many thought a traditional striker wouldn't work in Pep's system, but they've adapted brilliantly. The team now has more direct threat while maintaining their possession dominance.",
-      likes: 34,
-      dislikes: 0,
-    },
-    {
-      id: "4",
-      author: "TacticalAnalyst",
-      authorAvatar: "/placeholder.svg?height=40&width=40",
-      timeAgo: "30 minutes ago",
-      content:
-        "What strikes me most is their pressing system. The coordinated pressing triggers and how quickly they transition from attack to counter-press is exceptional. When they lose the ball, within 5 seconds you see 4-5 players immediately pressing to win it back. This prevents counter-attacks and allows them to maintain territorial dominance.",
-      likes: 41,
-      dislikes: 3,
-    },
-  ]
+  // Increment view count
+  await incrementThreadViews(params.id)
 
   return (
     <div className="min-h-screen bg-background">
@@ -72,7 +48,7 @@ export default function ThreadPage() {
             Forums
           </a>
           <span>/</span>
-          <Badge variant="secondary">{thread.category}</Badge>
+          <span>Thread</span>
         </div>
 
         {/* Thread Header */}
@@ -81,17 +57,17 @@ export default function ThreadPage() {
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={thread.authorAvatar || "/placeholder.svg"} />
+                <AvatarImage src={thread.author_avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop"} />
                 <AvatarFallback>{thread.author[0]}</AvatarFallback>
               </Avatar>
               <span className="font-medium text-foreground">{thread.author}</span>
             </div>
             <span>•</span>
-            <span>{thread.timeAgo}</span>
+            <span>{formatTimeAgo(thread.created_at)}</span>
             <span>•</span>
             <div className="flex items-center gap-1">
               <MessageSquare className="h-3.5 w-3.5" />
-              <span>{thread.replies} replies</span>
+              <span>{thread.reply_count || 0} replies</span>
             </div>
             <span>•</span>
             <span>{thread.views} views</span>
@@ -100,44 +76,50 @@ export default function ThreadPage() {
 
         {/* Posts */}
         <div className="space-y-4 mb-8">
-          {posts.map((post) => (
-            <Card key={post.id} className="p-6">
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center gap-2">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={post.authorAvatar || "/placeholder.svg"} />
-                    <AvatarFallback>{post.author[0]}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <ThumbsUp className="h-4 w-4" />
-                    </Button>
-                    <span className="text-sm font-medium">{post.likes}</span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <ThumbsDown className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{post.author}</span>
-                      <span className="text-sm text-muted-foreground">{post.timeAgo}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
+          {posts.length > 0 ? (
+            posts.map((post) => (
+              <Card key={post.id} className="p-6">
+                <div className="flex gap-4">
+                  <div className="flex flex-col items-center gap-2">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={post.author_avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop"} />
+                      <AvatarFallback>{post.author[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col items-center gap-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Share2 className="h-4 w-4" />
+                        <ThumbsUp className="h-4 w-4" />
                       </Button>
+                      <span className="text-sm font-medium">{post.likes}</span>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Flag className="h-4 w-4" />
+                        <ThumbsDown className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                  <div className="text-sm leading-relaxed whitespace-pre-line text-foreground">{post.content}</div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{post.author}</span>
+                        <span className="text-sm text-muted-foreground">{formatTimeAgo(post.created_at)}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Share2 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Flag className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="text-sm leading-relaxed whitespace-pre-line text-foreground">{post.content}</div>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            ))
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No replies yet. Be the first to reply!</p>
+            </div>
+          )}
         </div>
 
         {/* Reply Box */}
