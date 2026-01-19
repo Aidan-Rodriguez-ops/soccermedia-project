@@ -3,90 +3,25 @@ import { FeaturedNews } from "@/components/featured-news"
 import { NewsCard } from "@/components/news-card"
 import { CategoryTabs } from "@/components/category-tabs"
 import { Footer } from "@/components/footer"
+import { getFeaturedArticle, getArticles } from "@/lib/supabase-queries"
 
-// Mock news data
-const featuredArticle = {
-  id: "featured-1",
-  title: "Manchester City Clinches Historic Fourth Consecutive Premier League Title",
-  excerpt:
-    "Pep Guardiola's side makes history with unprecedented achievement, cementing their place as one of the greatest teams in English football history.",
-  category: "Premier League",
-  image: "/manchester-city-celebration.jpg",
-  author: "James Richardson",
-  publishedAt: "2 hours ago",
-  readTime: "5 min read",
+function formatTimeAgo(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+
+  if (diffHours < 1) return "Just now"
+  if (diffHours < 24) return `${diffHours} hours ago`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays === 1) return "1 day ago"
+  return `${diffDays} days ago`
 }
 
-const newsArticles = [
-  {
-    id: "1",
-    title: "Kylian Mbappé's First Season at Real Madrid: A Tactical Analysis",
-    excerpt:
-      "Breaking down how the French superstar has adapted to life in La Liga and transformed Carlo Ancelotti's attacking setup.",
-    category: "La Liga",
-    image: "/mbappe-real-madrid.jpg",
-    author: "Maria Santos",
-    publishedAt: "3 hours ago",
-    readTime: "7 min read",
-  },
-  {
-    id: "2",
-    title: "Inter Milan's Defensive Masterclass: Serie A's Best Backline",
-    excerpt:
-      "How Simone Inzaghi has built the most formidable defense in Italian football with tactical discipline and smart recruitment.",
-    category: "Serie A",
-    image: "/inter-milan-defense.jpg",
-    author: "Alessandro Rossi",
-    publishedAt: "5 hours ago",
-    readTime: "6 min read",
-  },
-  {
-    id: "3",
-    title: "Summer Transfer Window: Top 10 Deals That Could Happen",
-    excerpt:
-      "From potential blockbuster moves to surprise transfers, we analyze the biggest transfer rumors heating up across Europe.",
-    category: "Transfers",
-    image: "/transfer-window.jpg",
-    author: "Sarah Mitchell",
-    publishedAt: "8 hours ago",
-    readTime: "8 min read",
-  },
-  {
-    id: "4",
-    title: "Bayern Munich's Youth Revolution Under Vincent Kompany",
-    excerpt:
-      "The Belgian manager is reshaping Bayern's philosophy by promoting young talent and implementing an aggressive pressing system.",
-    category: "Bundesliga",
-    image: "/bayern-munich-youth.jpg",
-    author: "Hans Mueller",
-    publishedAt: "12 hours ago",
-    readTime: "6 min read",
-  },
-  {
-    id: "5",
-    title: "Champions League Quarter-Finals: Dark Horse Teams to Watch",
-    excerpt:
-      "These underdog clubs have what it takes to upset the favorites and make a deep run in Europe's most prestigious competition.",
-    category: "Champions League",
-    image: "/champions-league-underdogs.jpg",
-    author: "David Torres",
-    publishedAt: "1 day ago",
-    readTime: "5 min read",
-  },
-  {
-    id: "6",
-    title: "Women's Football Growth: Record Attendance Numbers Worldwide",
-    excerpt:
-      "The women's game continues its remarkable expansion with sold-out stadiums and increased media coverage breaking new ground.",
-    category: "International",
-    image: "/womens-football-growth.jpg",
-    author: "Emma Thompson",
-    publishedAt: "1 day ago",
-    readTime: "7 min read",
-  },
-]
+export default async function NewsPage() {
+  const featuredArticle = await getFeaturedArticle()
+  const newsArticles = await getArticles(6)
 
-export default function NewsPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -99,9 +34,20 @@ export default function NewsPage() {
         </div>
 
         {/* Featured Article */}
-        <section className="mb-12">
-          <FeaturedNews {...featuredArticle} />
-        </section>
+        {featuredArticle ? (
+          <section className="mb-12">
+            <FeaturedNews
+              id={featuredArticle.id}
+              title={featuredArticle.title}
+              excerpt={featuredArticle.excerpt}
+              category={featuredArticle.category}
+              image={featuredArticle.image_url || "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=1600&h=900&fit=crop"}
+              author={featuredArticle.author}
+              publishedAt={formatTimeAgo(featuredArticle.published_at)}
+              readTime={featuredArticle.read_time || "5 min read"}
+            />
+          </section>
+        ) : null}
 
         {/* Category Tabs */}
         <section className="mb-8">
@@ -110,11 +56,27 @@ export default function NewsPage() {
 
         {/* News Grid */}
         <section>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {newsArticles.map((article) => (
-              <NewsCard key={article.id} {...article} />
-            ))}
-          </div>
+          {newsArticles.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {newsArticles.map((article) => (
+                <NewsCard
+                  key={article.id}
+                  id={article.id}
+                  title={article.title}
+                  excerpt={article.excerpt}
+                  category={article.category}
+                  image={article.image_url || "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800&h=600&fit=crop"}
+                  author={article.author}
+                  publishedAt={formatTimeAgo(article.published_at)}
+                  readTime={article.read_time || "5 min read"}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground text-lg">No articles available yet. Check back soon!</p>
+            </div>
+          )}
         </section>
 
         {/* Load More */}

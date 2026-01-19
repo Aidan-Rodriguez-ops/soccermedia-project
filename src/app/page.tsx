@@ -8,6 +8,7 @@ import Link from "next/link"
 import { Footer } from "@/components/footer"
 import { getLiveMatches, getFixturesByDate } from "@/lib/api-football"
 import type { Match } from "@/types/football"
+import { getArticles } from "@/lib/supabase-queries"
 
 // Helper function to convert API match to LiveMatchCard props
 function convertMatchToCardProps(match: Match) {
@@ -81,30 +82,9 @@ async function getMatches() {
   ]
 }
 
-// Mock trending stories
-const trendingStories = [
-  {
-    id: "1",
-    title: "Haaland Breaks Goal Scoring Record",
-    category: "Premier League",
-    image: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&h=600&fit=crop",
-  },
-  {
-    id: "2",
-    title: "Transfer Window: Top Deals",
-    category: "Transfers",
-    image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&h=600&fit=crop",
-  },
-  {
-    id: "3",
-    title: "Champions League Draw Results",
-    category: "Champions League",
-    image: "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800&h=600&fit=crop",
-  },
-]
-
 export default async function Home() {
   const matches = await getMatches()
+  const trendingStories = await getArticles(3)
 
   return (
     <div className="min-h-screen bg-background">
@@ -199,23 +179,29 @@ export default async function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {trendingStories.map((story) => (
-              <Link key={story.id} href={`/story/${story.id}`}>
-                <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-full">
-                  <div className="relative h-48">
-                    <img
-                      src={story.image || "/placeholder.svg"}
-                      alt={story.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <Badge className="absolute top-3 left-3">{story.category}</Badge>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-bold text-lg text-balance">{story.title}</h3>
-                  </div>
-                </Card>
-              </Link>
-            ))}
+            {trendingStories.length > 0 ? (
+              trendingStories.map((story) => (
+                <Link key={story.id} href={`/news/${story.id}`}>
+                  <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-full">
+                    <div className="relative h-48">
+                      <img
+                        src={story.image_url || "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800&h=600&fit=crop"}
+                        alt={story.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <Badge className="absolute top-3 left-3">{story.category}</Badge>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-bold text-lg text-balance">{story.title}</h3>
+                    </div>
+                  </Card>
+                </Link>
+              ))
+            ) : (
+              <div className="col-span-3 text-center py-12">
+                <p className="text-muted-foreground">No trending stories available yet. Check back soon!</p>
+              </div>
+            )}
           </div>
         </section>
       </main>
